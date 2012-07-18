@@ -1,24 +1,19 @@
 #!/usr/bin/python                                                                                                              
 #encoding=utf8
 import redis
-import calendar
 import sys
-import time
-year  =  time.strftime('%G',time.localtime()) 
-#month =  time.strftime('%m',time.localtime())
-month = "06"
-print year,month
+from datetime import datetime
+redis_host = "192.168.1.250"
+year  =  datetime.now().year  
+last_month =  datetime.now().month  - 1 
+last_month = str(last_month).zfill(2)
+print year,last_month
 #get all selled item id
 item_set=set()
-#for day in xrange(first,last):
-redis_con=redis.Redis("192.168.1.47",6379,0)
+redis_con=redis.Redis(redis_host,6379,0)
 for day  in range(1,32):
-    if day < 10:
-        key = "CmdtySellStarPntStat_" + str(year) + str(month) + "0" + str(day)   
-        item_set.update(set(redis_con.hkeys(key)))
-    else:
-        key = "CmdtySellStarPntStat_" + str(year) + str(month) + str(day)   
-        item_set.update(set(redis_con.hkeys(key)))
+    key = "CmdtySellStarPntStat_" + str(year) + last_month + str(day).zfill(2)   
+    item_set.update(set(redis_con.hkeys(key)))
 print item_set
 star_point = {}
 item_count = {}
@@ -28,26 +23,15 @@ for item_id in item_set :
     item_count[item_id] = 0 
     man_count[item_id] = 0
     for day  in range(1,32):
-        if day < 10:
-            key_star = "CmdtySellStarPntStat_" + str(year) + str(month) + "0" + str(day)   
-            key_count = "CmdtySellNumStat_" + str(year) + str(month) + "0" + str(day)   
-            key_man = "CmdtySellManTimeStat_" + str(year) + str(month) + "0" + str(day)   
-            star = 0 if redis_con.hget(key_star,item_id) is None else redis_con.hget(key_star,item_id) 
-            count = 0 if redis_con.hget(key_count,item_id) is None else redis_con.hget(key_count,item_id) 
-            man = 0 if redis_con.hget(key_man,item_id) is None else redis_con.hget(key_man,item_id) 
-            star_point[item_id]   += int(star)
-            item_count[item_id]   += int(count)
-            man_count[item_id]   += int(man)
-        else:
-            key_star = "CmdtySellStarPntStat_" + str(year) + str(month) + str(day)   
-            key_count = "CmdtySellNumStat_" + str(year) + str(month) + str(day)   
-            key_man = "CmdtySellManTimeStat_" + str(year) + str(month) + str(day)   
-            star = 0 if redis_con.hget(key_star,item_id) is None else redis_con.hget(key_star,item_id) 
-            count = 0 if redis_con.hget(key_count,item_id) is None else redis_con.hget(key_count,item_id) 
-            man = 0 if redis_con.hget(key_man,item_id) is None else redis_con.hget(key_man,item_id) 
-            star_point[item_id]   += int(star)
-            item_count[item_id]   += int(count)
-            man_count[item_id]   += int(man)
+        key_star = "CmdtySellStarPntStat_" + str(year) + last_month + str(day).zfill(2)   
+        key_count = "CmdtySellNumStat_" + str(year) + last_month + str(day).zfill(2)      
+        key_man = "CmdtySellManTimeStat_" + str(year) + last_month + str(day).zfill(2)      
+        star = 0 if redis_con.hget(key_star,item_id) is None else redis_con.hget(key_star,item_id) 
+        count = 0 if redis_con.hget(key_count,item_id) is None else redis_con.hget(key_count,item_id) 
+        man = 0 if redis_con.hget(key_man,item_id) is None else redis_con.hget(key_man,item_id) 
+        star_point[item_id]   += int(star)
+        item_count[item_id]   += int(count)
+        man_count[item_id]   += int(man)
 item_name={
 1 : '爆电铁拳',
 2 : '毁灭者',
