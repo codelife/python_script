@@ -10,7 +10,7 @@ def main():
     headers = {"Content-Type":"application/x-www-form-urlencoded",   
                    "Connection":"Keep-Alive","Referer":"http"};   
     #与网站构建一个连接   
-    conn = httplib.HTTPConnection("account.seegame.com");   
+    conn = httplib.HTTPConnection("account.game.com");   
     #开始进行数据提交   同时也可以使用get进行   
     conn.request(method="POST",url="/login/login?20051.266438339837",body=params,headers=headers);   
     #返回处理后的数据   

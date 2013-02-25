@@ -6,12 +6,12 @@ import random
 #定义需要进行发送的数据   
 def main():
     randnum=random.randint(1,32423423234)
-    params_seegame = urllib.urlencode({'':randnum,'username':'16156240','password'
+    params_game = urllib.urlencode({'':randnum,'username':'16156240','password'
         :'ff81e29ca22d9d897ee18a62a443b9c6'});   
     opener = urllib2.build_opener()
-    ret_seegame=opener.open("http://domainname.com/login/baidulogin",
-            params_seegame)
-    data =ret_seegame.read()
+    ret_game=opener.open("http://domainname.com/login/baidulogin",
+            params_game)
+    data =ret_game.read()
     code=data.split(',')[-2].split(":")[1].strip('}').strip('"')
     cert=data.split(',')[-1].split(":")[1].strip('}').strip('"')
     if code=="0":

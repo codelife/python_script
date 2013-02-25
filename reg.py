@@ -8,9 +8,9 @@ def main():
     params = urllib.urlencode({'sPasswd':'8865441','sEmail':'kklijun4@qq.com','sRealName':'李俊','sIdNumber':'440106198101010155','sSex':'0','sYear':'2011','sMonth':'1','sDay':'1','sFlag':'','uid':'0'});   
     #定义一些文件头   
     headers = {"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8",   
-               "Connection":"Keep-Alive","Referer":"http://account.seegame.com/"};   
+               "Connection":"Keep-Alive","Referer":"http://account.game.com/"};   
     #与网站构建一个连接   
-    conn = httplib.HTTPConnection("account.seegame.com");   
+    conn = httplib.HTTPConnection("account.game.com");   
     #conn = httplib.HTTPConnection("192.168.1.136",port="88");   
     #开始进行数据提交   同时也可以使用get进行   
     conn.request(method="POST",url="/register/active",body=params,headers=headers);   

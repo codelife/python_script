@@ -17,8 +17,8 @@ global server_src_path
 global singal_file_dir
 global dest_path
 global local_path
-client_dest_dir = "/usr/local/kor/" #库库马力客户端所在目录,客户端目录client所在目录
-client_src_dir = "/root/version/" #内网库库马力客户端目录,客户端目录client所在目录
+client_dest_dir = "/usr/local/kor/" #游戏客户端所在目录,客户端目录client所在目录
+client_src_dir = "/root/version/" #内网游戏客户端目录,客户端目录client所在目录
 local_path = client_src_dir + "client/"
 dest_path = client_dest_dir + "client/"
 singal_file_dir = "/root/version/singal_file/"
