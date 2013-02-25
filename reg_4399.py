@@ -37,7 +37,7 @@ if __name__=="__main__":
     sys.exit(0)
     while True:
         try:
-            count=10 #每刷一票暂停的时间最大值(实际暂停时间为1-count之间的数)
+            count=10 #暂停的时间最大值(实际暂停时间为1-count之间的数)
             sleep_time=random.randrange(1,count)
             main()
             print 'sleeping .....%d' %sleep_time
