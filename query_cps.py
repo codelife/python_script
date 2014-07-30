@@ -9,9 +9,9 @@ import shutil
 from pytesser import *
 import requests
 sender = 'no_reply@ok130.com'
-#RECIVER = 'aaa61328@qq.com aaa24517@qq.com aaa2854@qq.com aaa8@qq.com '
-ACCOUNT = 'account'
-PASSWORD = 'password'
+#RECIVER = '11@qq.com'
+ACCOUNT = 'aa'
+PASSWORD = 'aa'
 INDEX_URL = 'http://www.37cs.com/index.php'
 LOGIN_URL = 'http://www.37cs.com/login.html'
 QUERY_URL = 'http://www.37cs.com/index.php?action=User&do=manage&method=cpsincome&ajax=data'
@@ -40,15 +40,13 @@ def get_code():
     #print(tuple(r_vcode.cookies))
     print 'vcode: %s' %vcode
     print image_file_to_string('/home/jp2014/png/aa.png')
-    print(cookies)
 
 def login():
     login_data = {'user_name': ACCOUNT, 'user_pwd': PASSWORD, 'user_vcode':vcode}
     post_login = requests.post(INDEX_URL + '?action=Login&do=login', cookies=cookies,data=login_data)
     ret=post_login.json()
-    print login_data
-    print post_login.content
-    print "ret status:%s" %ret['status']
+    l = ['success','fail']
+    print "Login :%s" %l[ret['status']]
     return ret['status']
 
 def query():
@@ -58,24 +56,35 @@ def query():
             'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'
             }
     day=time.strftime('%Y-%m-%d',time.localtime())  
-    print day
-    print(cookies)
     query_data = {'start_date' : day,'end_date' : day,'platid' : 0,'gameid':' '}
     ret_query = requests.post(QUERY_URL,headers=headers, cookies=cookies,data=query_data)
-    print QUERY_URL
-    print query_data
-    print ret_query.url
-    print ret_query.content
-    sys.exit()
-    patt = '<table id="my_data".*?>.*?</table>'
-    TT = re.search(re.compile(patt, re.DOTALL), R_PAY.content)
-    content, count = re.subn('(<th>|<td>).*?(</th>|</td>)\n\s*</tr>', '</tr>', TT.group())
-    if(count >= 2):
-        return content
+    if not ret_query.content :
+        return false
     else:
-       print '替换失败'
-       return None
-
+        ret = ret_query.json()
+        print ret
+        return ret['data']
+def to_table(data):
+    head = '''
+    <table cellspacing="1" cellpadding="0" border="1" class="tablesorter" style="width:680px" id="my_data"> <thead> <tr> <th>日期</th> <th>游戏平台</th> <th>游戏名称</th> <th>游戏服</th> <th>人数</th> <th>金额</th> </tr> </thead> <tbody> 
+    '''
+    body=''
+    count = len(data)
+    consumers=0
+    money=0
+    for i in range(count):
+        BILL_DAY = data[i]['BILL_DAY'].encode('utf-8')
+        PLATFORM_NAME =data[i]['PLATFORM_NAME'].encode('utf-8')
+        GAME_NAME = data[i]['GAME_NAME'].encode('utf-8')
+        SERVER_NAME = data[i]['SERVER_NAME'].encode('utf-8')
+        CONSUMERS = data[i]['CONSUMERS'].encode('utf-8')
+        CONSUMPTION = data[i]['CONSUMPTION'].encode('utf-8')
+        body+="<tr><td><span times=\"\" t=\"5\" style=\"border-bottom:1px dashed #ccc;\">%s</span></td> <td>%s</td> <td>%s</td> <td>%s</td> <td>%s</td> <td>%s</td> </tr><tr></tr>" %(BILL_DAY,PLATFORM_NAME,GAME_NAME,SERVER_NAME,CONSUMERS,CONSUMPTION)
+        consumers += int(data[i]['CONSUMERS'])
+        money += float(data[i]['CONSUMPTION'])
+    body += "</tbody> <tfoot> <tr> <th align=\"center\" colspan=\"1\">总计</th> <th colspan=\"3\">&nbsp;</th> <th>%s</th> <th>%s</th> </tr> </tfoot> </table>" %(consumers, money)
+    table = head + body
+    return table
 def mail_notify(sender, RECIVER, content):
     html_wrap = '''
     <html>
@@ -93,7 +102,7 @@ def mail_notify(sender, RECIVER, content):
     msg['Subject'] = '充值统计-1: %s' % time.strftime('%Y/%m/%d %H:%M:%S', time.localtime())
     msg['From'] = sender
     msg['To'] = RECIVER
-    mail_content = html_wrap.replace('xxx', content.replace('border="0"', 'border="1"').replace('充值', ''))
+    mail_content = html_wrap.replace('xxx', content.replace('border="0"', 'border="1"'))
     msg.attach(MIMEText(mail_content, 'html'))
     s = smtplib.SMTP('localhost')
     s.sendmail(sender, RECIVER.split(), msg.as_string())
@@ -101,11 +110,16 @@ def mail_notify(sender, RECIVER, content):
 
 if __name__ == '__main__':
     login_code = 0
-    #while(login_code == 0):
-    get_code()
-    login_code = login()
-    content = query()
-    if(content):
-        mail_notify(sender, RECIVER, content)
-    else:
-        print "query flase"
+    count=0
+    while(login_code == 0):
+        get_code()
+        login_code = login()
+    while True:
+        if(count==0 or (count%30)==0):
+            content = query()
+            table = to_table(content)
+            if(table):
+                mail_notify(sender, RECIVER, table)
+        time.sleep(120)
+        requests.get('http://www.37cs.com/index.php?action=Login&do=loginStatus',cookies=cookies)
+        count+=1
