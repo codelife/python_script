@@ -8,12 +8,13 @@ import time
 import shutil
 from pytesser import *
 import requests
+import subprocess
 sender = 'no_reply@ok130.com'
-#RECIVER = '11@qq.com'
+RECIVER = '445@qq.com'
 ACCOUNT = 'aa'
 PASSWORD = 'aa'
 INDEX_URL = 'http://www.37cs.com/index.php'
-LOGIN_URL = 'http://www.37cs.com/login.html'
+LOGIN_URL = 'http://www.37cs.com/index.php?action=Login&do=login'
 QUERY_URL = 'http://www.37cs.com/index.php?action=User&do=manage&method=cpsincome&ajax=data'
 # requests.get('http://www.37cs.com/index.php?action=Login&do=loginStatus', cookies = cookies)
 def cl(image):
@@ -38,32 +39,19 @@ def get_code():
     vcode = read(gray)[0:4]
     cookies = r_vcode.cookies
     #print(tuple(r_vcode.cookies))
-    print 'vcode: %s' %vcode
-    print image_file_to_string('/home/jp2014/png/aa.png')
+    #print 'vcode: %s' %vcode
+    #print image_file_to_string('/home/jp2014/png/aa.png')
 
 def login():
     login_data = {'user_name': ACCOUNT, 'user_pwd': PASSWORD, 'user_vcode':vcode}
-    post_login = requests.post(INDEX_URL + '?action=Login&do=login', cookies=cookies,data=login_data)
+    post_login = requests.post(LOGIN_URL, cookies=cookies,data=login_data)
     ret=post_login.json()
-    l = ['success','fail']
+    print ret
+    l = ['fail','success']
     print "Login :%s" %l[ret['status']]
+    time.sleep(3)
     return ret['status']
 
-def query():
-    headers = {'Referer':'http://www.37cs.com/user.html',
-            'User-Agent':'(Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0',
-            'X-Requested-With':'XMLHttpRequest',
-            'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'
-            }
-    day=time.strftime('%Y-%m-%d',time.localtime())  
-    query_data = {'start_date' : day,'end_date' : day,'platid' : 0,'gameid':' '}
-    ret_query = requests.post(QUERY_URL,headers=headers, cookies=cookies,data=query_data)
-    if not ret_query.content :
-        return false
-    else:
-        ret = ret_query.json()
-        print ret
-        return ret['data']
 def to_table(data):
     head = '''
     <table cellspacing="1" cellpadding="0" border="1" class="tablesorter" style="width:680px" id="my_data"> <thead> <tr> <th>日期</th> <th>游戏平台</th> <th>游戏名称</th> <th>游戏服</th> <th>人数</th> <th>金额</th> </tr> </thead> <tbody> 
@@ -85,6 +73,28 @@ def to_table(data):
     body += "</tbody> <tfoot> <tr> <th align=\"center\" colspan=\"1\">总计</th> <th colspan=\"3\">&nbsp;</th> <th>%s</th> <th>%s</th> </tr> </tfoot> </table>" %(consumers, money)
     table = head + body
     return table
+
+def query():
+    try:
+        headers = {'Referer':'http://www.37cs.com/user.html',
+                'User-Agent':'(Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0',
+                'X-Requested-With':'XMLHttpRequest',
+                'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'
+                }
+        day=time.strftime('%Y-%m-%d',time.localtime())  
+        query_data = {'start_date' : day,'end_date' : day,'platid' : 0,'gameid':' '}
+        ret_query = requests.post(QUERY_URL,headers=headers, cookies=cookies,data=query_data)
+        if not ret_query.content :
+            return false
+        else:
+            ret = ret_query.json()
+            if ret['status']==0:
+                return ret['message'].encode('utf-8')
+            else:
+                table = to_table(ret['data'])
+                return  table
+    except:
+        return '程序查询数据错误'
 def mail_notify(sender, RECIVER, content):
     html_wrap = '''
     <html>
@@ -102,24 +112,44 @@ def mail_notify(sender, RECIVER, content):
     msg['Subject'] = '充值统计-1: %s' % time.strftime('%Y/%m/%d %H:%M:%S', time.localtime())
     msg['From'] = sender
     msg['To'] = RECIVER
-    mail_content = html_wrap.replace('xxx', content.replace('border="0"', 'border="1"'))
+    try:
+        mail_content = html_wrap.replace('xxx', content.replace('border="0"', 'border="1"'))
+    except:
+        mail_content = content
     msg.attach(MIMEText(mail_content, 'html'))
     s = smtplib.SMTP('localhost')
     s.sendmail(sender, RECIVER.split(), msg.as_string())
     s.quit()
 
+def running():
+    cmdline='ps aux |egrep "/usr/bin/python.*query_cps.py"|grep -v grep |wc -l'
+    ret=subprocess.Popen(cmdline,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    output, errors = ret.communicate()
+    output = int(output)
+    if output == 1:
+        return True
+    else:
+        return False
+
 if __name__ == '__main__':
+    if not running():
+        sys.exit()
     login_code = 0
     count=0
+    fail=0
     while(login_code == 0):
         get_code()
+        time.sleep(3)
         login_code = login()
     while True:
         if(count==0 or (count%30)==0):
             content = query()
-            table = to_table(content)
-            if(table):
-                mail_notify(sender, RECIVER, table)
+            if(content):
+                mail_notify(sender, RECIVER, content)
+            else:
+                fail+=1
+        if(fail>3):
+            break
         time.sleep(120)
         requests.get('http://www.37cs.com/index.php?action=Login&do=loginStatus',cookies=cookies)
         count+=1
