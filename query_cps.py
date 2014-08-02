@@ -16,6 +16,7 @@ PASSWORD = 'aa'
 INDEX_URL = 'http://www.37cs.com/index.php'
 LOGIN_URL = 'http://www.37cs.com/index.php?action=Login&do=login'
 QUERY_URL = 'http://www.37cs.com/index.php?action=User&do=manage&method=cpsincome&ajax=data'
+LOGIN_STATUS_URL = 'http://www.37cs.com/index.php?action=Login&do=loginStatus'
 # requests.get('http://www.37cs.com/index.php?action=Login&do=loginStatus', cookies = cookies)
 def cl(image):
     image = image.convert('L')
@@ -74,15 +75,16 @@ def to_table(data):
     table = head + body
     return table
 
-def query():
+def query(start_day):
     try:
         headers = {'Referer':'http://www.37cs.com/user.html',
                 'User-Agent':'(Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0',
                 'X-Requested-With':'XMLHttpRequest',
                 'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'
                 }
-        day=time.strftime('%Y-%m-%d',time.localtime())  
-        query_data = {'start_date' : day,'end_date' : day,'platid' : 0,'gameid':' '}
+        end_day=time.strftime('%Y-%m-%d',time.localtime())  
+        query_data = {'start_date' : start_day,'end_date' : end_day,'platid' : 0,'gameid':' '}
+        last_query_day = end_day
         ret_query = requests.post(QUERY_URL,headers=headers, cookies=cookies,data=query_data)
         if not ret_query.content :
             return false
@@ -92,7 +94,7 @@ def query():
                 return ret['message'].encode('utf-8')
             else:
                 table = to_table(ret['data'])
-                return  table
+                return  (table,last_query_day)
     except:
         return '程序查询数据错误'
 def mail_notify(sender, RECIVER, content):
@@ -132,6 +134,7 @@ def running():
         return False
 
 if __name__ == '__main__':
+    start_day=time.strftime('%Y-%m-%d',time.localtime())
     if not running():
         sys.exit()
     login_code = 0
@@ -143,7 +146,7 @@ if __name__ == '__main__':
         login_code = login()
     while True:
         if(count==0 or (count%30)==0):
-            content = query()
+            content, start_day = query(start_day)
             if(content):
                 mail_notify(sender, RECIVER, content)
             else:
@@ -151,5 +154,5 @@ if __name__ == '__main__':
         if(fail>3):
             break
         time.sleep(120)
-        requests.get('http://www.37cs.com/index.php?action=Login&do=loginStatus',cookies=cookies)
+        requests.get(LOGIN_STATUS_URL,cookies=cookies)
         count+=1
