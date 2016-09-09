@@ -6,7 +6,7 @@
     #                                                                                      -->子服务(dir)so名称-->dir.so
     #2.ssh用户需有sudo权限
 import subprocess
-from fabric.api import run, env,sudo 
+from fabric.api import run, env,sudo
 from fabric.operations import put,local
 from fabric.context_managers import *
 import time
@@ -47,7 +47,7 @@ def start_server(host="",server_name=""):
             with hide('running', 'stdout', 'stderr'):
                 exist_restart=sudo("if test -e restart.sh -a -x restart.sh;then echo True;else echo False;fi" )
                 exist_stop=sudo("if test -e stop;then echo True;else echo False;fi" )
-            if exist_stop == "True": 
+            if exist_stop == "True":
                 sudo("rm stop")
             else:
                 pass
@@ -87,7 +87,7 @@ def rm_so(host="",server_name=""):
         pass
 
 def upload_file(host="",server_name="" ):
-    '''upload file 
+    '''upload file
     '''
 
     #print "entering upload_file"
@@ -105,7 +105,7 @@ def upload_file(host="",server_name="" ):
         pass
 #服务器用户名密码
 def version_update(host="",server_name="",user="user",passwd="111111"):
-    env.host_string = host 
+    env.host_string = host
     env.user = user
     env.password = passwd
     rm_so(server_name=server_name)
@@ -141,7 +141,7 @@ if __name__ == '__main__':
 #启动除social外的其他服务
     for server in server_list:
         for new_host in server_dict[server]:
-            env.host_string = new_host 
+            env.host_string = new_host
 #服务器用户名密码:
             env.user = "user"
             env.password = "111111"
