@@ -10,48 +10,49 @@ from pytesser import *
 import requests
 import subprocess
 sender = 'no_reply@ok130.com'
-RECIVER = '445@qq.com'
-ACCOUNT = 'aa'
-PASSWORD = 'aa'
-INDEX_URL = 'http://www.37cs.com/index.php'
-LOGIN_URL = 'http://www.37cs.com/index.php?action=Login&do=login'
-QUERY_URL = 'http://www.37cs.com/index.php?action=User&do=manage&method=cpsincome&ajax=data'
-LOGIN_STATUS_URL = 'http://www.37cs.com/index.php?action=Login&do=loginStatus'
-# requests.get('http://www.37cs.com/index.php?action=Login&do=loginStatus', cookies = cookies)
+RECIVER = '123'
+ACCOUNT = '123'
+PASSWORD = '123'
+IMGCODE_URL = 'http://123.123.225.162:8099/servlet/ticketImage?rand='
+LOGIN_URL = 'http://123.123.225.162:8099/admin/login.action'
+QUERY_URL = 'http://123.123.225.162:8099/admin/openAccountAuto.action'
+qd_code = "D398FD199AAA424CA7CCA3CD56CC4AAB"
+
 def cl(image):
     image = image.convert('L')
     image = image.point(lambda x: 0 if x<158 else 255, '1')
     return image
 
+
 def read(image):
     text = image_to_string(image)
     return text
 
-def get_code():
+
+def get_imgcode():
     global vcode
     global cookies
     timestamp = str(time.time()).split('.')[0] + '000'
-    vcode_data = {'action': 'Login','do': 'vcode','t': timestamp}
-    r_vcode = requests.get(INDEX_URL,params = vcode_data)
+    IMGCODE_URL += timestamp
+    r_vcode = requests.get(IMGCODE_URL)
     i = Image.open(StringIO(r_vcode.content))
-    i.save('/home/jp2014/png/aa.png')
+    i.save('/tmp/qd_imgcode.png')
     gray = cl(i)
-    gray.save('/home/jp2014/png/aa_de.png')
+    gray.save('/tmp/qd_imgcode_de.png')
     vcode = read(gray)[0:4]
     cookies = r_vcode.cookies
     #print(tuple(r_vcode.cookies))
-    #print 'vcode: %s' %vcode
+    print('vcode: %s' %vcode)
     #print image_file_to_string('/home/jp2014/png/aa.png')
 
 def login():
-    login_data = {'user_name': ACCOUNT, 'user_pwd': PASSWORD, 'user_vcode':vcode}
-    post_login = requests.post(LOGIN_URL, cookies=cookies,data=login_data)
-    ret=post_login.json()
-    print ret
-    l = ['fail','success']
-    print "Login :%s" %l[ret['status']]
+    login_data = {'form.name': ACCOUNT, 'form.password': PASSWORD, 'ticket': vcode, 'siteno': "main"}
+    post_login = requests.post(LOGIN_URL, cookies=cookies, data=login_data)
+    ret = post_login.json()
+    print(ret)
     time.sleep(3)
-    return ret['status']
+    return ret
+
 
 def to_table(data):
     head = '''
@@ -74,29 +75,56 @@ def to_table(data):
     body += "</tbody> <tfoot> <tr> <th align=\"center\" colspan=\"1\">总计</th> <th colspan=\"3\">&nbsp;</th> <th>%s</th> <th>%s</th> </tr> </tfoot> </table>" %(consumers, money)
     table = head + body
     return table
+'''
+processFront    "success"
+mobileno    ""
+idno    ""
+custname    ""
+processBack    ""
+infocolect_channel    ""
+opacctkind_flag    "D398FD199AAA424CA7CCA3CD56CC4AAB"
+service_flag    ""
+button    "%CB%D1%CB%F7"
+page    "1"
+'''
 
 def query(start_day):
     try:
-        headers = {'Referer':'http://www.37cs.com/user.html',
-                'User-Agent':'(Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20100101 Firefox/31.0',
-                'X-Requested-With':'XMLHttpRequest',
-                'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'
-                }
-        end_day=time.strftime('%Y-%m-%d',time.localtime())
-        query_data = {'start_date' : start_day,'end_date' : end_day,'platid' : 0,'gameid':' '}
-        last_query_day = end_day
-        ret_query = requests.post(QUERY_URL,headers=headers, cookies=cookies,data=query_data)
-        if not ret_query.content :
+        headers = {'Referer': 'http://123.123.225.162:8099/admin/openAccountAuto.action?manageCatalogId=5110',
+                   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:54.0) Gecko/20100101 Firefox/54.0',
+                   'X-Requested-With': 'XMLHttpRequest',
+                   'Content-Type': 'application/x-www-form-urlencoded',
+                   'Connection': "keep-alive",
+                   }
+        query_data = {
+            'form.pageUrl': "manageCatalogId=5110",
+            'function': "",
+            'manageCatalogId': "5110",
+            'subManageCatalogId': "",
+            'branch': "",
+            'start_timebeg': start_day,
+            'start_timeend': "",
+            'id': "",
+            'processFront': "success",
+            'mobileno': "",
+            'idno': "",
+            'custname': "",
+            'processBack': "",
+            'infocolect_channel': "",
+            'opacctkind_flag': qd_code,
+            'service_flag': "",
+            'button': "%CB%D1%CB%F7",
+            'page': "1"}
+        ret_query = requests.post(QUERY_URL, headers=headers, cookies=cookies, data=query_data)
+        if not ret_query.content:
             return false
         else:
-            ret = ret_query.json()
-            if ret['status']==0:
-                return ret['message'].encode('utf-8')
-            else:
-                table = to_table(ret['data'])
-                return  (table,last_query_day)
+            print(ret_query.content)
+# todo filter table
     except:
         return '程序查询数据错误'
+
+
 def mail_notify(sender, RECIVER, content):
     html_wrap = '''
     <html>
@@ -123,9 +151,10 @@ def mail_notify(sender, RECIVER, content):
     s.sendmail(sender, RECIVER.split(), msg.as_string())
     s.quit()
 
+
 def running():
-    cmdline='ps aux |egrep "/usr/bin/python.*query_cps.py"|grep -v grep |wc -l'
-    ret=subprocess.Popen(cmdline,stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    cmdline = 'ps aux |egrep "/usr/bin/python.*query_youku.py"|grep -v grep |wc -l'
+    ret = subprocess.Popen(cmdline, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     output, errors = ret.communicate()
     output = int(output)
     if output == 1:
@@ -134,25 +163,23 @@ def running():
         return False
 
 if __name__ == '__main__':
-    start_day=time.strftime('%Y-%m-%d',time.localtime())
+    start_day = time.strftime('%Y-%m-%d', time.localtime())
     if not running():
         sys.exit()
     login_code = 0
-    count=0
-    fail=0
+    count = 0
+    fail = 0
     while(login_code == 0):
-        get_code()
+        get_imgcode()
         time.sleep(3)
         login_code = login()
-    while True:
-        if(count==0 or (count%30)==0):
-            content, start_day = query(start_day)
-            if(content):
-                mail_notify(sender, RECIVER, content)
-            else:
-                fail+=1
-        if(fail>3):
-            break
-        time.sleep(120)
-        requests.get(LOGIN_STATUS_URL,cookies=cookies)
-        count+=1
+        content, start_day = query(start_day)
+        time.sleep(60)
+        #if(content):
+        #    mail_notify(sender, RECIVER, content)
+        #else:
+        #    fail+=1
+        #if(fail>3):
+        #break
+        #requests.get(LOGIN_STATUS_URL,cookies=cookies)
+        #count+=1
